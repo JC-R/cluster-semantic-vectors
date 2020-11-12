@@ -109,8 +109,8 @@ if __name__ == "__main__":
         kmeans_model = KMeans(init='k-means++', n_clusters=k, verbose=args.verbose, n_jobs=-1, max_iter=500)
 
     else:
-        kmeans_model = MiniBatchKMeans(init='k-means++', n_clusters=args.k, verbose=args.verbose,
-                                       batch_siz=args.batchsize)
+        kmeans_model = MiniBatchKMeans(init='k-means++', n_clusters=k, verbose=args.verbose,
+                                       batch_size=args.batchsize)
 
     print("Method: {}, k: {}, {} entities".format(args.method, k, len(df)))
     kmeans_model.fit(np.array(df))
