@@ -1,4 +1,5 @@
 import os
+import shutil
 
 import ngtpy
 import numpy as np
@@ -68,38 +69,48 @@ if __name__ == "__main__":
     parser.add_argument("--verbose", type=int, default=0)
     parser.add_argument("--output", type=str, required=True)
     parser.add_argument("--distance", type=str, default='L2')
+    parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument("--dimensions", type=int, default=768)
     args = parser.parse_args()
 
     re_pattern = re.compile(args.filter) if args.filter else None
 
+    if os.path.isdir(args.output):
+        print("Output directory/index already exists", end="")
+        if not args.overwrite:
+            exit(-1)
+        else:
+            print("...overwriting")
+            shutil.rmtree(args.output, ignore_errors=True)
+
     os.makedirs(args.output, exist_ok=True)
+    index_name = "{}/index.anng".format(args.output)
 
-    # create an index
-    ngtpy.create(path="{}/index".format(args.output), dimension=768, distance_type=args.distance)
+    # create and open an index
+    ngtpy.create(path=index_name, dimension=args.dimensions, distance_type=args.distance)
+    index = ngtpy.Index(index_name)
 
-    # open index.
-    index = ngtpy.Index("{}/index".format(args.output))
-
+    # create a map file
     fout = open("{}/labels.csv".format(args.output), 'w')
 
-    # load the objects
-    label_idx = 0
+    # insert the objects
     if args.is_dir:
+        label_idx = 0
+        totvectors = 0
         for filepath in glob.iglob(args.input):
             labels = build_word_vector_matrix(filepath, re_pattern, index)
-            print("{} - {} vectors".format(filepath, len(labels)))
+            totvectors += len(labels)
+            print("{} - {} vectors -> {}".format(filepath, len(labels), totvectors))
             for idx, q in enumerate(labels):
                 fout.write("{},{}\n".format(label_idx + idx, q))
             label_idx += len(labels)
-
     else:
         labels = build_word_vector_matrix(args.input, None, index)
         for idx, q in enumerate(labels):
-            fout.write("{},{}\n".format(label_idx + idx, q))
+            print("{} - {} vectors".format(args.input, len(labels)))
+            fout.write("{},{}\n".format(idx, q))
 
     # save the index.
-    index.build_index()
     index.save()
-
-    # close the index.
     index.close()
+    print(datetime.datetime.now())

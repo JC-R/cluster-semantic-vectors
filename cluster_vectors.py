@@ -39,6 +39,7 @@ class autovivify_list(dict):
 
 
 def build_word_vector_matrix(vector_file, re_filter):
+
     embeddings = []
     labels = []
 
@@ -87,6 +88,7 @@ if __name__ == "__main__":
     output = args.output if args.output else args.method
 
     df = None
+    labels_array = []
     if args.is_dir:
         for filepath in glob.iglob(args.input):
                 df1, labels1 = build_word_vector_matrix(filepath, re_pattern)
@@ -98,10 +100,11 @@ if __name__ == "__main__":
                     labels_array = labels1
                 else:
                     df = np.append(df, df1, axis=0)
-                    labels_array.append(labels1)
+                    labels_array += labels1
 
     else:
-        df, labels_array = build_word_vector_matrix(args.input, None)
+        df1, labels_array = build_word_vector_matrix(args.input, None)
+        df = np.array(df1)
 
     k = args.k if args.k else int(math.floor(args.reduction * len(df)))
 
@@ -112,8 +115,8 @@ if __name__ == "__main__":
         kmeans_model = MiniBatchKMeans(init='k-means++', n_clusters=k, verbose=args.verbose,
                                        batch_size=args.batchsize)
 
-    print("Method: {}, k: {}, {} entities".format(args.method, k, len(df)))
-    kmeans_model.fit(np.array(df))
+    print("Method: {}, k: {}, {} entities, {} labels".format(args.method, k, len(df), len(labels_array)))
+    kmeans_model.fit(df)
 
     cluster_labels = kmeans_model.labels_
     cluster_inertia = kmeans_model.inertia_
